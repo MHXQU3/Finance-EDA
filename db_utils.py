@@ -3,6 +3,7 @@ import numpy as np
 import yaml
 from sqlalchemy import create_engine, inspect
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import seaborn as sns
 import psycopg2
 import os
@@ -155,12 +156,52 @@ class DataFrameInfo:
 class Plotter:
     def __init__(self):
         pass
+
+    def create_pdf(self, file_path):
+        self.pdf = PdfPages(file_path)
+    
+    def save_plot_to_pdf(self, figure):
+        if self.pdf is not None:
+            self.pdf.savefig(figure)
+
+    def close_pdf(self):
+        if self.pdf is not None:
+            self.pdf.close()
     
     def plot_missing_values(self, df):
         plt.figure(figsize=(12, 6))
         sns.heatmap(df.isnull(), cbar=False, cmap='viridis')
         plt.title('Missing Values Heatmap')
+        self.save_plot_to_pdf(plt.gcf())  # Save the current figure to PDF
         plt.show()
+
+    def plot_histogram(self, df, column, title=None):
+        plt.figure(figsize=(10, 6))
+        sns.histplot(df[column], kde=True)
+        if title:
+            plt.title(title)
+        else:
+            plt.title(f'Histogram of {column}')
+        self.save_plot_to_pdf(plt.gcf())  # Save the current figure to PDF
+        plt.show()
+
+    def plot_skewed_columns(self, df, skew_threshold=1.0):
+        skewed_columns = df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
+        skewed_columns = skewed_columns[skewed_columns > skew_threshold]
+
+        for column in skewed_columns.index:
+            print(f"Column: {column}, Skewness: {skewed_columns[column]}")
+            self.plot_histogram(df, column)
+     
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=skewed_columns.index, y=skewed_columns.values)
+        plt.title('Skewness of Columns')
+        plt.xlabel('Columns')
+        plt.ylabel('Skewness')
+        self.save_plot_to_pdf(plt.gcf())  # Save the summary plot to PDF
+        plt.show()  # Show the summary plot
+
+        return skewed_columns
 
 
 class DataFrameTransform:
@@ -185,9 +226,26 @@ class DataFrameTransform:
                     self.df[column] = self.df[column].fillna(self.df[column].mode()[0])
 
         return self.df
+    
+    def identify_skewed_columns(self, threshold=1.0):
+        skewed_columns = self.df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
+        return skewed_columns[skewed_columns > threshold].index
 
+    def transform_skewed_columns(self, skew_threshold=1.0):
+        skewed_columns = self.df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
+        skewed_columns = skewed_columns[skewed_columns > skew_threshold]
 
+        existing_columns = skewed_columns.index.intersection(self.df.columns)
 
+        for column in existing_columns:
+            print(f"Transforming {column} with skewness: {skewed_columns[column]}")
+
+            if self.df[column].min() > 0:  # Apply log transformation if no zero/negative values
+                self.df[column] = np.log1p(self.df[column])
+            else:
+                self.df[column] = np.sqrt(self.df[column])  # Apply square root otherwise
+
+        return self.df
 
 
 if __name__ == "__main__":
@@ -242,12 +300,29 @@ if __name__ == "__main__":
 
     # Create an instance of Plotter to visualize missing values
     plotter = Plotter()
+    plotter.create_pdf("visualisations.pdf")
     plotter.plot_missing_values(data_frame)
 
-    # Save the data to a CSV file
-    db_connector.save_data(data_frame, 'loan_payments_data.csv')
+    # Identify skewed columns and apply transformations
+    skewed_columns = df_transformer.identify_skewed_columns(threshold=0.75)
+    print(f"Skewed Columns: {skewed_columns}")
 
-    file_path = 'loan_payments_data.csv'
+    # Visualize skewed columns before transformation
+    for column in skewed_columns:
+        plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
+
+    # Apply transformations to reduce skewness
+    data_frame = df_transformer.transform_skewed_columns(skewed_columns)  # Step 2 & 3
+
+    # Visualize skewed columns after transformation
+    for column in skewed_columns:
+        plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}") 
+
+    plotter.close_pdf()
+
+    file_path = os.path.join('Source_Files', 'loan_payments_data.csv')
+    # Save the data to a CSV file
+    db_connector.save_data(data_frame, file_path)
     data_frame = db_connector.load_csv_to_dataframe(file_path)
 
     if data_frame is not None:
