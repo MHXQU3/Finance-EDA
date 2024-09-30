@@ -174,6 +174,7 @@ class Plotter:
         plt.title('Missing Values Heatmap')
         self.save_plot_to_pdf(plt.gcf())  # Save the current figure to PDF
         plt.show()
+        plt.close()
 
     def plot_histogram(self, df, column, title=None):
         plt.figure(figsize=(10, 6))
@@ -184,6 +185,7 @@ class Plotter:
             plt.title(f'Histogram of {column}')
         self.save_plot_to_pdf(plt.gcf())  # Save the current figure to PDF
         plt.show()
+        plt.close()
 
     def plot_skewed_columns(self, df, skew_threshold=1.0):
         skewed_columns = df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
@@ -200,6 +202,7 @@ class Plotter:
         plt.ylabel('Skewness')
         self.save_plot_to_pdf(plt.gcf())  # Save the summary plot to PDF
         plt.show()  # Show the summary plot
+        plt.close()
 
         return skewed_columns
 
@@ -233,19 +236,32 @@ class DataFrameTransform:
 
     def transform_skewed_columns(self, skew_threshold=1.0):
         skewed_columns = self.df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
-        skewed_columns = skewed_columns[skewed_columns > skew_threshold]
+        if len(skewed_columns) == len(self.df.columns):
+            skewed_columns = skewed_columns[skewed_columns > skew_threshold]
+        else:
+            print('There is a mismatch in lengths')
 
         existing_columns = skewed_columns.index.intersection(self.df.columns)
 
+        print(f"Skewed columns after filtering: {skewed_columns.index.tolist()}")
+        print(f"Existing columns in DataFrame: {self.df.columns.tolist()}")
+
         for column in existing_columns:
             print(f"Transforming {column} with skewness: {skewed_columns[column]}")
+
+            if self.df[column].isnull().any():
+                print(f"Warning: Column {column} contains NaN values and will be skipped.")
+                continue
 
             if self.df[column].min() > 0:  # Apply log transformation if no zero/negative values
                 self.df[column] = np.log1p(self.df[column])
             else:
                 self.df[column] = np.sqrt(self.df[column])  # Apply square root otherwise
+            
+            print(f"Transformation complete for {column}.")
 
         return self.df
+
 
 
 if __name__ == "__main__":
