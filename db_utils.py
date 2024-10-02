@@ -194,6 +194,8 @@ class Plotter:
         for column in skewed_columns.index:
             print(f"Column: {column}, Skewness: {skewed_columns[column]}")
             self.plot_histogram(df, column)
+            plt.show()
+            plt.close()
      
         plt.figure(figsize=(10, 6))
         sns.barplot(x=skewed_columns.index, y=skewed_columns.values)
@@ -261,6 +263,27 @@ class DataFrameTransform:
             print(f"Transformation complete for {column}.")
 
         return self.df
+    
+    def run_data_transformation_pipeline(self):
+        print("Checking for missing values...")
+        missing_values = self.check_missing_values()
+        print(f"Missing Values:\n{missing_values}\n")
+
+        print("Dropping columns with >50% missing values...")
+        self.drop_missing_columns()
+        print("Imputation of missing values...")
+        self.impute_missing_values()
+        
+        print("Identifying skewed columns...")
+        skewed_columns = self.identify_skewed_columns()
+        print(f"Skewed Columns: {skewed_columns}\n")
+
+        if not skewed_columns.empty:
+            print("Transforming skewed columns...")
+            self.transform_skewed_columns()  # Call to the method you defined
+            print("Transformation of skewed columns completed.")
+        else:
+            print("No skewed columns to transform.")
 
 
 
@@ -333,6 +356,8 @@ if __name__ == "__main__":
     # Visualize skewed columns after transformation
     for column in skewed_columns:
         plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}") 
+
+    df_transformer.run_data_transformation_pipeline()
 
     plotter.close_pdf()
 
