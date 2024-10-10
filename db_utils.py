@@ -89,33 +89,39 @@ class DataTransform:
         # Change the column title to 'employment_length (years)'
         df.rename(columns={'employment_length': 'employment_length (years)'}, inplace=True)
 
+        print('After Categorical')
+        print(df.head(2))
+
         return df
+
 
     def convert_to_datetime(self, df):
         # Convert to datetime and handle errors
-        df['earliest_credit_line'] = pd.to_datetime(df['earliest_credit_line'], errors='coerce')
-        df['issue_date'] = pd.to_datetime(df['issue_date'], errors='coerce')
-        df['last_credit_pull_date'] = pd.to_datetime(df['last_credit_pull_date'], errors='coerce')
-        df['last_payment_date'] = pd.to_datetime(df['last_payment_date'], errors='coerce')
-        df['next_payment_date'] = pd.to_datetime(df['next_payment_date'], errors='coerce')
+        date_format = '%b-%Y'
 
-        # Format to year-month
-        df['earliest_credit_line'] = df['earliest_credit_line'].dt.strftime('%Y-%m')
-        df['issue_date'] = df['issue_date'].dt.strftime('%Y-%m')
-        df['last_credit_pull_date'] = df['last_credit_pull_date'].dt.strftime('%Y-%m')
-        df['last_payment_date'] = df['last_payment_date'].dt.strftime('%Y-%m') 
-        df['next_payment_date'] = df['next_payment_date'].dt.strftime('%Y-%m')
+        df['earliest_credit_line'] = pd.to_datetime(df['earliest_credit_line'], format=date_format, errors='coerce')
+        df['issue_date'] = pd.to_datetime(df['issue_date'], format=date_format, errors='coerce')
+        df['last_credit_pull_date'] = pd.to_datetime(df['last_credit_pull_date'], format=date_format, errors='coerce')
+        df['last_payment_date'] = pd.to_datetime(df['last_payment_date'], format=date_format, errors='coerce')
+        df['next_payment_date'] = pd.to_datetime(df['next_payment_date'], format=date_format, errors='coerce')
 
+        print('After DT')
+        print(df.head(2))
         return df
     
     def convert_to_float(self, df):
         # Remove ' months', convert to numeric
         df['term'] = pd.to_numeric(df['term'].str.replace(' months', '', regex=False), errors='coerce')
+        print("Term values after conversion to float:", df['term'].head())  # Debugging line
         # Rename the column to 'term (months)'
         df.rename(columns={'term': 'term (months)'}, inplace=True)
         # Keep NaN and convert to float64
         df['term (months)'] = pd.to_numeric(df['term (months)'], errors='coerce')
         
+        print("Term values after renaming:", df['term (months)'].head())  # Debugging line
+
+        print('After float')
+        print(df.head(2))
 
         return df
     
@@ -151,6 +157,8 @@ class DataFrameInfo:
         # List of columns
         summary['columns'] = self.df.columns.tolist()
 
+        print('After summary')
+        print(self.df.head(2))
         return summary
 
 class Plotter:
@@ -229,20 +237,22 @@ class DataFrameTransform:
                     self.df[column] = self.df[column].fillna(self.df[column].median())
                 elif self.df[column].dtype == 'category':  # Categorical types
                     self.df[column] = self.df[column].fillna(self.df[column].mode()[0])
-
         return self.df
     
     def identify_skewed_columns(self, threshold=1.0):
         skewed_columns = self.df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
-        return skewed_columns[skewed_columns > threshold].index
+        return skewed_columns[skewed_columns.abs() > threshold].index
 
-    def transform_skewed_columns(self, skew_threshold=1.0):
-        skewed_columns = self.df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
-        if len(skewed_columns) == len(self.df.columns):
-            skewed_columns = skewed_columns[skewed_columns > skew_threshold]
-        else:
-            print('There is a mismatch in lengths')
+    def transform_skewed_columns(self, skew_threshold=0.75):
+        numeric_columns = self.df.select_dtypes(include=['float64', 'int64'])
+        skewed_columns = numeric_columns.skew().sort_values(ascending=False)
+        skewed_columns = skewed_columns[skewed_columns.abs() > skew_threshold]
 
+        # Display skewed columns
+        if len(skewed_columns) == 0:
+            print("No skewed columns exceed the threshold.")
+            return self.df
+        
         existing_columns = skewed_columns.index.intersection(self.df.columns)
 
         print(f"Skewed columns after filtering: {skewed_columns.index.tolist()}")
@@ -255,11 +265,17 @@ class DataFrameTransform:
                 print(f"Warning: Column {column} contains NaN values and will be skipped.")
                 continue
 
+            # Apply transformations based on the presence of zero or negative values
             if self.df[column].min() > 0:  # Apply log transformation if no zero/negative values
-                self.df[column] = np.log1p(self.df[column])
+                self.df[column] = np.log1p(self.df[column])  # Use log1p for numerical stability
             else:
-                self.df[column] = np.sqrt(self.df[column])  # Apply square root otherwise
-            
+                # Check for negative values
+                if (self.df[column] < 0).any():
+                    print(f"Warning: Column {column} contains negative values; applying square root transformation.")
+                    self.df[column] = np.sqrt(self.df[column] - self.df[column].min() + 1)  # Shift values to make them non-negative
+                else:
+                    self.df[column] = np.sqrt(self.df[column])  # Apply square root
+
             print(f"Transformation complete for {column}.")
 
         return self.df
@@ -271,6 +287,7 @@ class DataFrameTransform:
 
         print("Dropping columns with >50% missing values...")
         self.drop_missing_columns()
+
         print("Imputation of missing values...")
         self.impute_missing_values()
         
@@ -323,17 +340,10 @@ if __name__ == "__main__":
      # Create an instance of DataFrameTransform for handling missing values
     df_transformer = DataFrameTransform(data_frame)
 
-    # Check for missing values
-    missing_values = df_transformer.check_missing_values()
-    print("Missing Values Percentage:\n", missing_values)
+    # Run the data transformation pipeline
+    df_transformer.run_data_transformation_pipeline()
 
-    # Drop columns with more than 50% missing values
-    df_transformer.drop_missing_columns(threshold=50)
-
-    # Impute remaining missing values
-    data_frame = df_transformer.impute_missing_values()
-
-    # Run NULL checking again to confirm
+    # Check for missing values after transformation
     missing_values_after = df_transformer.check_missing_values()
     print("Missing Values After Imputation:\n", missing_values_after)
 
@@ -342,28 +352,27 @@ if __name__ == "__main__":
     plotter.create_pdf("visualisations.pdf")
     plotter.plot_missing_values(data_frame)
 
-    # Identify skewed columns and apply transformations
+    # Identify skewed columns and visualize before transformation
     skewed_columns = df_transformer.identify_skewed_columns(threshold=0.75)
     print(f"Skewed Columns: {skewed_columns}")
 
-    # Visualize skewed columns before transformation
     for column in skewed_columns:
         plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
 
     # Apply transformations to reduce skewness
-    data_frame = df_transformer.transform_skewed_columns(skewed_columns)  # Step 2 & 3
+    data_frame = df_transformer.transform_skewed_columns(skew_threshold=0.75)  # Specify threshold if needed
 
     # Visualize skewed columns after transformation
     for column in skewed_columns:
         plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}") 
 
-    df_transformer.run_data_transformation_pipeline()
-
     plotter.close_pdf()
 
+    # Save the data to a CSV file  
     file_path = os.path.join('Source_Files', 'loan_payments_data.csv')
-    # Save the data to a CSV file
     db_connector.save_data(data_frame, file_path)
+
+    # Load the saved CSV into a DataFrame
     data_frame = db_connector.load_csv_to_dataframe(file_path)
 
     if data_frame is not None:
