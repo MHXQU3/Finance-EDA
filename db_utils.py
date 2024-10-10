@@ -81,6 +81,24 @@ class DataTransform:
         df['sub_grade'] = df['sub_grade'].astype('category')
         # Changing verification status type
         df['verification_status'] = df['verification_status'].astype('category')
+        # Changing collections_12_mths_ex_med type
+        df['collections_12_mths_ex_med'] = df['collections_12_mths_ex_med'].astype('category')
+        # Changing delinq_2yrs
+        df['delinq_2yrs'] = df['delinq_2yrs'].astype('category')
+        # Changing inq_last_6mths
+        df['inq_last_6mths'] = df['inq_last_6mths'].astype('category')
+        # Changing open_accounts
+        df['open_accounts'] = df['open_accounts'].astype('category')
+        # Changing mths_since_last_delinq
+        df['mths_since_last_delinq'] = df['mths_since_last_delinq'].astype('category')
+        # Changing mths_since_last_record
+        df['mths_since_last_record'] = df['mths_since_last_record'].astype('category')
+        # Changing total_accounts
+        df['total_accounts'] = df['total_accounts'].astype('category')
+        # Changing mths_since_last_major_derog
+        df['mths_since_last_major_derog'] = df['mths_since_last_major_derog'].astype('category')
+        # Changing policy_code
+        df['policy_code'] = df['policy_code'].astype('category')
 
         # Remove the word 'year' and 'years' from all employment_length entries
         df['employment_length'] = df['employment_length'].str.replace(' years', '').str.replace(' year', '').str.strip()
@@ -89,8 +107,11 @@ class DataTransform:
         # Change the column title to 'employment_length (years)'
         df.rename(columns={'employment_length': 'employment_length (years)'}, inplace=True)
 
-        print('After Categorical')
-        print(df.head(2))
+        #Changing term to categorical
+        df['term'] = df['term'].str.replace(' months', '', regex=False)
+        df.rename(columns={'term': 'term (months)'}, inplace=True)
+        # Keep NaN and convert to float64
+        df['term (months)'] = df['term (months)'].astype('category')
 
         return df
 
@@ -105,23 +126,20 @@ class DataTransform:
         df['last_payment_date'] = pd.to_datetime(df['last_payment_date'], format=date_format, errors='coerce')
         df['next_payment_date'] = pd.to_datetime(df['next_payment_date'], format=date_format, errors='coerce')
 
-        print('After DT')
-        print(df.head(2))
         return df
     
     def convert_to_float(self, df):
-        # Remove ' months', convert to numeric
-        df['term'] = pd.to_numeric(df['term'].str.replace(' months', '', regex=False), errors='coerce')
-        print("Term values after conversion to float:", df['term'].head())  # Debugging line
-        # Rename the column to 'term (months)'
-        df.rename(columns={'term': 'term (months)'}, inplace=True)
-        # Keep NaN and convert to float64
-        df['term (months)'] = pd.to_numeric(df['term (months)'], errors='coerce')
+         # Convert 'loan_amount' to numeric, handling errors
+        df['loan_amount'] = pd.to_numeric(df['loan_amount'], errors='coerce')
         
-        print("Term values after renaming:", df['term (months)'].head())  # Debugging line
+        # Ensure the column is in float64 format
+        df['loan_amount'] = df['loan_amount'].astype('float64')
 
-        print('After float')
-        print(df.head(2))
+        return df
+    
+    def convert_to_object(self, df):
+        df['id'] = df['id'].astype('object')
+        df['member_id'] = df['member_id'].astype('object')
 
         return df
     
@@ -157,8 +175,6 @@ class DataFrameInfo:
         # List of columns
         summary['columns'] = self.df.columns.tolist()
 
-        print('After summary')
-        print(self.df.head(2))
         return summary
 
 class Plotter:
@@ -295,12 +311,7 @@ class DataFrameTransform:
         skewed_columns = self.identify_skewed_columns()
         print(f"Skewed Columns: {skewed_columns}\n")
 
-        if not skewed_columns.empty:
-            print("Transforming skewed columns...")
-            self.transform_skewed_columns()  # Call to the method you defined
-            print("Transformation of skewed columns completed.")
-        else:
-            print("No skewed columns to transform.")
+        return skewed_columns
 
 
 
@@ -329,6 +340,9 @@ if __name__ == "__main__":
     # Convert column to float and format
     data_frame = data_transformer.convert_to_float(data_frame)
 
+    # Convert column to object and format
+    data_frame = data_transformer.convert_to_object(data_frame)
+
     # Create an instance of DataFrameInfo
     df_info = DataFrameInfo(data_frame)
 
@@ -340,39 +354,41 @@ if __name__ == "__main__":
      # Create an instance of DataFrameTransform for handling missing values
     df_transformer = DataFrameTransform(data_frame)
 
-    # Run the data transformation pipeline
-    df_transformer.run_data_transformation_pipeline()
+   # Run the data transformation pipeline
+    skewed_columns = df_transformer.run_data_transformation_pipeline()
 
     # Check for missing values after transformation
     missing_values_after = df_transformer.check_missing_values()
     print("Missing Values After Imputation:\n", missing_values_after)
+
+    # Save the pre-transformed data to a CSV for reference
+    pretransformed_file_path = os.path.join('Source_Files', 'loan_payments_data_pretransformed.csv')
+    db_connector.save_data(data_frame, pretransformed_file_path)
 
     # Create an instance of Plotter to visualize missing values
     plotter = Plotter()
     plotter.create_pdf("visualisations.pdf")
     plotter.plot_missing_values(data_frame)
 
-    # Identify skewed columns and visualize before transformation
-    skewed_columns = df_transformer.identify_skewed_columns(threshold=0.75)
-    print(f"Skewed Columns: {skewed_columns}")
+    # Visualize skewed columns before transformation
+    if not skewed_columns.empty:
+        for column in skewed_columns:
+            plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
 
-    for column in skewed_columns:
-        plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
+        # Apply transformations to reduce skewness
+        data_frame = df_transformer.transform_skewed_columns()  # Call the method once here
 
-    # Apply transformations to reduce skewness
-    data_frame = df_transformer.transform_skewed_columns(skew_threshold=0.75)  # Specify threshold if needed
-
-    # Visualize skewed columns after transformation
-    for column in skewed_columns:
-        plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}") 
+        # Visualize skewed columns after transformation
+        for column in skewed_columns:
+            plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}")
 
     plotter.close_pdf()
 
-    file_path = os.path.join('Source_Files', 'loan_payments_data.csv')
-    db_connector.save_data(data_frame, file_path)
+    transformed_file_path = os.path.join('Source_Files', 'loan_payments_data_transformed.csv')
+    db_connector.save_data(data_frame, transformed_file_path)
 
     # Load the saved CSV into a DataFrame
-    data_frame = db_connector.load_csv_to_dataframe(file_path)
+    data_frame = db_connector.load_csv_to_dataframe(transformed_file_path)
 
     if data_frame is not None:
         print(data_frame.shape)  # Display the shape of the DataFrame
