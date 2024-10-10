@@ -17,10 +17,10 @@ By conducting exploratory data analysis on the loan data, you aim to gain a deep
 Ultimately, your goal is to improve the performance and profitability of the loan portfolio.
 
 ## Table of Contents
-[Dataset Schema](#dataset-schema)
-[Scripts](#scripts)
-[Import](#imports)
-[Data Extraction](#data-extraction)
+- [Dataset Schema](#dataset-schema)
+- [Scripts](#scripts)
+- [Import](#imports)
+- [Data Extraction](#data-extraction)
 
 ## Dataset Schema
 
