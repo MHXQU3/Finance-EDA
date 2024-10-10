@@ -22,6 +22,7 @@ class PaymentStateQuery:
 
     # Calculate total amount to be paid back in 6 months
     def calculate_payment_in_6_months(self):
+        self.cleaned_loan_data['term (months)'] = self.cleaned_loan_data['term (months)'].astype(int)  # Convert term to int
         self.cleaned_loan_data['monthly_payment'] = self.cleaned_loan_data['total_amount_due'] / self.cleaned_loan_data['term (months)']
         self.cleaned_loan_data['payment_in_6_months'] = self.cleaned_loan_data['monthly_payment'] * 6
         total_payment_in_6_months = self.cleaned_loan_data['payment_in_6_months'].sum()
@@ -46,7 +47,7 @@ class PaymentStateQuery:
         # Display the plot
         plt.show()
 
-class LossCalculation:
+class LossCalculation: #Task 2
     def __init__(self, loan_data):
         self.loan_data = loan_data
 
@@ -63,7 +64,7 @@ class LossCalculation:
 
         return charged_off_percentage, total_paid_towards_charged_off
     
-class ExpectedLoss:
+class ExpectedLoss: #Task 3
     def __init__(self, cleaned_loan_data):
         self.cleaned_loan_data = cleaned_loan_data
 
@@ -71,34 +72,36 @@ class ExpectedLoss:
         # Filter loans that are Charged Off
         charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off'].copy()
 
-        # Calculate the remaining term using .loc to avoid the warning
-        charged_off_loans.loc[:, 'remaining_term'] = charged_off_loans['term (months)'] - (charged_off_loans['total_payment'] / charged_off_loans['instalment'])
+        # Calculate the remaining term
+        charged_off_loans['term (months)'] = charged_off_loans['term (months)'].astype(int)  # Convert term to int
+        charged_off_loans.loc[:, 'remaining_term'] = (
+            charged_off_loans['term (months)'] - (charged_off_loans['total_payment'] / charged_off_loans['instalment'])
+        ).clip(lower=0)  # Ensure no negative remaining term
 
-        # Calculate the projected loss: remaining term * monthly instalment using .loc to avoid the warning
+        # Calculate the projected loss
         charged_off_loans.loc[:, 'expected_loss'] = charged_off_loans['remaining_term'] * charged_off_loans['instalment']
 
         # Total expected loss
         total_expected_loss = charged_off_loans['expected_loss'].sum()
-        print(f"Total Expected Loss from Charged Off Loans: ${total_expected_loss:.2f}")
+        
+        # Calculate total revenue loss these loans would have generated
+        charged_off_loans['total_revenue'] = charged_off_loans['remaining_term'] * charged_off_loans['instalment']
+        total_revenue_loss = charged_off_loans['total_revenue'].sum()
 
-        return charged_off_loans, total_expected_loss
+        print(f"Total Expected Loss from Charged Off Loans: ${total_expected_loss:.2f}")
+        print(f"Total Revenue Loss from Charged Off Loans: ${total_revenue_loss:.2f}")
+
+        return total_expected_loss, total_revenue_loss
 
     def visualize_expected_loss(self):
-        charged_off_loans, total_expected_loss = self.calculate_expected_loss()
+        total_expected_loss, total_revenue_loss = self.calculate_expected_loss()
 
-        # Sort loans by expected loss in descending order
-        charged_off_loans = charged_off_loans.sort_values(by='expected_loss', ascending=False)
-
-        # Limit the number of loans displayed (e.g., top 20 largest losses)
-        top_loans = charged_off_loans.head(20)
-
-        # Plot the top 20 projected losses over the remaining term
-        plt.figure(figsize=(12, 8))
-        plt.bar(top_loans['id'], top_loans['expected_loss'], color='red')
-        plt.title(f"Top 20 Projected Losses Over Remaining Term for Charged Off Loans\nTotal Expected Loss: ${total_expected_loss:.2f}")
-        plt.xlabel("Loan ID")
-        plt.ylabel("Expected Loss ($)")
-        plt.xticks(rotation=90)
+        # Plot total expected loss
+        plt.figure(figsize=(8, 6))
+        plt.bar(['Expected Loss', 'Revenue Loss'], [total_expected_loss, total_revenue_loss], color=['red', 'orange'])
+        plt.title("Projected Losses from Charged Off Loans")
+        plt.ylabel("Loss Amount ($)")
+        plt.xticks(rotation=0)
         plt.grid(axis='y')
 
         # Show the plot
@@ -106,13 +109,13 @@ class ExpectedLoss:
         plt.show()
 
 
-class PossibleLoss:
+class PossibleLoss: #Task 4
     def __init__(self, cleaned_loan_data):
         self.cleaned_loan_data = cleaned_loan_data
 
     def calculate_possible_loss(self):
         # Filter customers who are behind on their payments
-        late_customers = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Late'].copy()
+        late_customers = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'].str.contains('Late')].copy()
 
         # Calculate the total number of late customers
         total_late_customers = late_customers.shape[0]
@@ -121,6 +124,7 @@ class PossibleLoss:
         total_late_amount = late_customers['loan_amount'].sum()
 
         # Calculate expected loss if they were to be charged off
+        late_customers['term (months)'] = late_customers['term (months)'].astype(int)
         late_customers['remaining_term'] = late_customers['term (months)'] - (late_customers['total_payment'] / late_customers['instalment'])
         late_customers['expected_loss'] = late_customers['remaining_term'] * late_customers['instalment']
         total_expected_loss_late = late_customers['expected_loss'].sum()
@@ -130,17 +134,18 @@ class PossibleLoss:
 
         # Calculate the percentage of late customers compared to total customers
         total_customers = self.cleaned_loan_data.shape[0]
-        percentage_late_customers = (total_late_customers / total_customers) * 100
+        percentage_late_customers = (total_late_customers / total_customers) * 100 if total_customers > 0 else 0
 
         # Calculate expected loss for charged off loans
         charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off'].copy()
+        charged_off_loans['term (months)'] = charged_off_loans['term (months)'].astype(int)
         charged_off_loans['remaining_term'] = charged_off_loans['term (months)'] - (charged_off_loans['total_payment'] / charged_off_loans['instalment'])
         charged_off_loans['expected_loss'] = charged_off_loans['remaining_term'] * charged_off_loans['instalment']
         total_charged_off_loss = charged_off_loans['expected_loss'].sum()
 
         # Calculate the percentage of total expected revenue that late customers and charged off loans represent
         combined_loss = total_expected_loss_late + total_charged_off_loss
-        percentage_combined_loss = (combined_loss / total_revenue) * 100
+        percentage_combined_loss = (combined_loss / total_revenue) * 100 if total_revenue > 0 else 0
 
         # Print the results
         print(f"Total Late Customers: {total_late_customers}")
@@ -157,17 +162,17 @@ class PossibleLoss:
             "percentage_combined_loss": percentage_combined_loss
         }
 
-class LossIndicators:
+class LossIndicators: #Task 5
     def __init__(self, cleaned_loan_data):
         self.cleaned_loan_data = cleaned_loan_data
 
     def analyze_loss_indicators(self):
         # Create subsets for charged off loans and late customers
-        charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off']
-        late_customers = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Late']
+        charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off'].copy()
+        late_customers = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'].str.contains('Late')].copy()
 
         # Combine both groups for analysis
-        charged_off_loans['status'] = 'Charged Off'
+        charged_off_loans.loc[:, 'status'] = 'Charged Off'
         late_customers['status'] = 'Late'
         combined_data = pd.concat([charged_off_loans, late_customers], axis=0)
 
@@ -188,14 +193,15 @@ class LossIndicators:
 
         # Analyze the impact of each indicator on loan status
         for indicator in indicators:
-            print(f'\nAnalysis of {indicator}:\n')
-            print(combined_data.groupby([indicator, 'status']).size().unstack().fillna(0))
+            if indicator in combined_data.columns:  # Check if the indicator exists
+                print(f'\nAnalysis of {indicator}:\n')
+                print(combined_data.groupby([indicator, 'status']).size().unstack().fillna(0))
 
     def run_analysis(self):
         self.analyze_loss_indicators()
 
 # Application
-df = pd.read_csv(os.path.join('Source_Files', 'loan_payments_data_transformed.csv'))
+df = pd.read_csv(os.path.join('Source_Files', 'loan_payments_data_pretransformed.csv'))
 
 #Instantiating the classes
 loan_analysis = PaymentStateQuery(df)
