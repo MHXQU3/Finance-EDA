@@ -194,8 +194,8 @@ class LossIndicators:
     def run_analysis(self):
         self.analyze_loss_indicators()
 
-# Usage
-df = pd.read_csv(os.path.join('Source_Files', 'loan_payments_data.csv'))  # Replace with actual cleaned data path
+# Application
+df = pd.read_csv(os.path.join('Source_Files', 'loan_payments_data_transformed.csv'))
 
 #Instantiating the classes
 loan_analysis = PaymentStateQuery(df)
