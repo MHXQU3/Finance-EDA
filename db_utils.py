@@ -368,7 +368,6 @@ if __name__ == "__main__":
 
     plotter.close_pdf()
 
-    # Save the data to a CSV file
     file_path = os.path.join('Source_Files', 'loan_payments_data.csv')
     db_connector.save_data(data_frame, file_path)
 
