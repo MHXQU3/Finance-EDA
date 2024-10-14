@@ -269,7 +269,7 @@ class DataFrameTransform:
         missing_percent = self.df.isnull().mean() * 100
         return missing_percent[missing_percent > 0]
 
-    def drop_missing_columns(self, threshold=50):
+    def drop_missing_columns(self, threshold=20):
         missing_percent = self.df.isnull().mean() * 100
         columns_to_drop = missing_percent[missing_percent > threshold].index
         self.df.drop(columns=columns_to_drop, inplace=True)
