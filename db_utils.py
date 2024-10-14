@@ -14,6 +14,10 @@ def load_creds(file_path):
     return credentials
 
 class RDSDatabaseConnector:
+    '''
+    Connects to the RDS PGSQL database based on the details in the credential file. Then extracts data
+    from the loan payments table, saving it to a csv file after which it is then loaded into a pandas dataframe. 
+    '''
     def __init__(self, RDS_USER, RDS_PASSWORD, RDS_HOST, RDS_PORT, RDS_DATABASE):
         self.credentials = {
             'rds_user': RDS_USER,
@@ -61,6 +65,13 @@ class RDSDatabaseConnector:
             return None
 
 class DataTransform:
+    '''
+    This class changes the data types of columns that based on initial checks were not of the correct dtype.
+    These dtypes are based on how they would then eventually go on to be used later on in the project, as although
+    some columns like months may be better as integers, in the scope of this project as it will be taken as face value
+    and not part of arithmetic functions, I believed it would be better off as categorical, as with many of the 
+    columns I have changed. 
+    '''
     def __init__(self, df):
         self.df = df
     
@@ -144,6 +155,11 @@ class DataTransform:
         return df
     
 class DataFrameInfo:
+    '''
+    This class is used for summarising information about the dataframe, which is useful for providing a quick glance
+    and overview that will give us an idea of how to proceed with the EDA. This includes numerous statistical
+    identifiers and values.
+    '''
     def __init__(self, df):
         self.df = df
 
@@ -178,6 +194,12 @@ class DataFrameInfo:
         return summary
 
 class Plotter:
+    '''
+    A plotter class that solely carries the responsibility for all the visuals in this script. As there were
+    many visualisations being generated I thought it would be a good idea to look up how to save all of them
+    into a singular PDF file so one can go back and look at them all and compare without having to iteratively, 
+    save them manually. As well as the pre-skewed and post-skewed plots there is also a plot for the missing values. 
+    '''
     def __init__(self):
         pass
 
@@ -194,7 +216,7 @@ class Plotter:
     
     def plot_missing_values(self, df):
         plt.figure(figsize=(12, 6))
-        sns.heatmap(df.isnull(), cbar=False, cmap='viridis')
+        sns.heatmap(df.isnull(), cbar=False, cmap='plasma')
         plt.title('Missing Values Heatmap')
         self.save_plot_to_pdf(plt.gcf())  # Save the current figure to PDF
         plt.show()
@@ -234,6 +256,12 @@ class Plotter:
 
 
 class DataFrameTransform:
+    """
+    This class is responsible for transforming and cleaning the pandas DataFrame. It includes methods to check for 
+    and report missing values, drop columns with a high percentage of missing data, impute missing values 
+    in numeric and categorical columns, identify skewed numeric columns based on a specified threshold, and 
+    transform skewed columns to reduce skewness using log or square root transformations.
+    """
     def __init__(self, df):
         self.df = df
 
@@ -287,7 +315,7 @@ class DataFrameTransform:
             else:
                 # Check for negative values
                 if (self.df[column] < 0).any():
-                    print(f"Warning: Column {column} contains negative values; applying square root transformation.")
+                    print(f"Warning: Column {column} contains negative values")
                     self.df[column] = np.sqrt(self.df[column] - self.df[column].min() + 1)  # Shift values to make them non-negative
                 else:
                     self.df[column] = np.sqrt(self.df[column])  # Apply square root
@@ -297,17 +325,17 @@ class DataFrameTransform:
         return self.df
     
     def run_data_transformation_pipeline(self):
-        print("Checking for missing values...")
+        print("Checking for missing values:")
         missing_values = self.check_missing_values()
         print(f"Missing Values:\n{missing_values}\n")
 
-        print("Dropping columns with >50% missing values...")
+        print("Dropping columns with >50% missing values:")
         self.drop_missing_columns()
 
-        print("Imputation of missing values...")
+        print("Imputation of missing values:")
         self.impute_missing_values()
         
-        print("Identifying skewed columns...")
+        print("Identifying skewed columns:")
         skewed_columns = self.identify_skewed_columns()
         print(f"Skewed Columns: {skewed_columns}\n")
 
@@ -316,69 +344,47 @@ class DataFrameTransform:
 
 
 if __name__ == "__main__":
-    # Load credentials
     creds = load_creds('credentials.yaml')
 
-    # Create an instance of the RDSDatabaseConnector using dictionary unpacking
     db_connector = RDSDatabaseConnector(**creds)
 
-    # Initialize the database engine
     db_connector.initialize_engine()
 
-    # Extract data from the loan_payments table
     data_frame = db_connector.extract_data()
 
-    # Create an instance of DataTransform
     data_transformer = DataTransform(data_frame)
 
-    # Convert columns to categorical types
     data_frame = data_transformer.convert_to_categorical(data_frame)
-
-    # Convert date columns to datetime and format
     data_frame = data_transformer.convert_to_datetime(data_frame)
-
-    # Convert column to float and format
     data_frame = data_transformer.convert_to_float(data_frame)
-
-    # Convert column to object and format
     data_frame = data_transformer.convert_to_object(data_frame)
 
-    # Create an instance of DataFrameInfo
     df_info = DataFrameInfo(data_frame)
 
-    # Get and print the summary
     summary = df_info.summarize()
     for key, value in summary.items():
         print(f"{key}:\n{value}\n")
 
-     # Create an instance of DataFrameTransform for handling missing values
     df_transformer = DataFrameTransform(data_frame)
 
-   # Run the data transformation pipeline
     skewed_columns = df_transformer.run_data_transformation_pipeline()
 
-    # Check for missing values after transformation
     missing_values_after = df_transformer.check_missing_values()
     print("Missing Values After Imputation:\n", missing_values_after)
 
-    # Save the pre-transformed data to a CSV for reference
     pretransformed_file_path = os.path.join('Source_Files', 'loan_payments_data_pretransformed.csv')
     db_connector.save_data(data_frame, pretransformed_file_path)
 
-    # Create an instance of Plotter to visualize missing values
     plotter = Plotter()
     plotter.create_pdf("visualisations.pdf")
     plotter.plot_missing_values(data_frame)
 
-    # Visualize skewed columns before transformation
     if not skewed_columns.empty:
         for column in skewed_columns:
             plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
 
-        # Apply transformations to reduce skewness
         data_frame = df_transformer.transform_skewed_columns()  # Call the method once here
 
-        # Visualize skewed columns after transformation
         for column in skewed_columns:
             plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}")
 
@@ -387,7 +393,6 @@ if __name__ == "__main__":
     transformed_file_path = os.path.join('Source_Files', 'loan_payments_data_transformed.csv')
     db_connector.save_data(data_frame, transformed_file_path)
 
-    # Load the saved CSV into a DataFrame
     data_frame = db_connector.load_csv_to_dataframe(transformed_file_path)
 
     if data_frame is not None:

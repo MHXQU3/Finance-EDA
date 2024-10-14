@@ -3,33 +3,39 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-class PaymentStateQuery:
-    def __init__(self, cleaned_loan_data):
-        self.cleaned_loan_data = cleaned_loan_data
+class PaymentStateQuery: #Task 1
+    '''
+    Summarise what percentage of the loans have been currently recovered compared to the total amount to 
+    be paid over the loans term including interest.
+    Additionally calculate how much will be paid back in 6 months time with interest. 
+    Visualise your results on an appropriate graph.
+    '''
+    def __init__(self, loan_data):
+        self.loan_data = loan_data
 
     # Calculate total amount due (loan amount + interest)
     def calculate_total_amount_due(self):
-        self.cleaned_loan_data['total_amount_due'] = self.cleaned_loan_data['loan_amount'] + (
-            self.cleaned_loan_data['loan_amount'] * self.cleaned_loan_data['int_rate'] / 100)
+        self.loan_data['total_amount_due'] = self.loan_data['loan_amount'] + (
+            self.loan_data['loan_amount'] * self.loan_data['int_rate'] / 100)
 
     # Calculate percentage of loans recovered
     def calculate_percentage_recovered(self):
-        total_recovered = self.cleaned_loan_data['recoveries'].sum()
-        total_due = self.cleaned_loan_data['total_amount_due'].sum()
+        total_recovered = self.loan_data['recoveries'].sum()
+        total_due = self.loan_data['total_amount_due'].sum()
         percentage_recovered = (total_recovered / total_due) * 100
         print(f"Percentage of loans recovered: {percentage_recovered:.2f}%")
         return total_recovered, total_due, percentage_recovered
 
     # Calculate total amount to be paid back in 6 months
     def calculate_payment_in_6_months(self):
-        self.cleaned_loan_data['term (months)'] = self.cleaned_loan_data['term (months)'].astype(int)  # Convert term to int
-        self.cleaned_loan_data['monthly_payment'] = self.cleaned_loan_data['total_amount_due'] / self.cleaned_loan_data['term (months)']
-        self.cleaned_loan_data['payment_in_6_months'] = self.cleaned_loan_data['monthly_payment'] * 6
-        total_payment_in_6_months = self.cleaned_loan_data['payment_in_6_months'].sum()
+        self.loan_data['term (months)'] = self.loan_data['term (months)'].astype(int)  # Convert term to int
+        self.loan_data['monthly_payment'] = self.loan_data['total_amount_due'] / self.loan_data['term (months)']
+        self.loan_data['payment_in_6_months'] = self.loan_data['monthly_payment'] * 6
+        total_payment_in_6_months = self.loan_data['payment_in_6_months'].sum()
         print(f"Total payment to be paid back in 6 months: {total_payment_in_6_months:.2f}")
         return total_payment_in_6_months
 
-    # Plot recovered vs total due
+    # Plot recovered vs total amount to be paid over the loans term including interest
     def plot_recovered_vs_due(self, total_recovered, total_due, percentage_recovered):
         labels = ['Total Recovered', 'Total Amount Due']
         values = [total_recovered, total_due]
@@ -48,6 +54,12 @@ class PaymentStateQuery:
         plt.show()
 
 class LossCalculation: #Task 2
+    '''
+    The company wants to check what percentage of loans have been a loss to the company:
+    Loans marked as Charged Off in the loan_status column represent a loss to the company.
+    Calculate the percentage of charged off loans and the total amount that was paid towards these loans 
+    before being charged off.
+    '''
     def __init__(self, loan_data):
         self.loan_data = loan_data
 
@@ -65,12 +77,17 @@ class LossCalculation: #Task 2
         return charged_off_percentage, total_paid_towards_charged_off
     
 class ExpectedLoss: #Task 3
-    def __init__(self, cleaned_loan_data):
-        self.cleaned_loan_data = cleaned_loan_data
+    '''
+    Calculate the expected loss of the loans marked as Charged Off.
+    Calculate the loss in revenue these loans would have generated for the company if they had finished 
+    their term. Visualise the loss projected over the remaining term of these loans.
+    '''
+    def __init__(self, loan_data):
+        self.loan_data = loan_data
 
     def calculate_expected_loss(self):
         # Filter loans that are Charged Off
-        charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off'].copy()
+        charged_off_loans = self.loan_data[self.loan_data['loan_status'] == 'Charged Off'].copy()
 
         # Calculate the remaining term
         charged_off_loans['term (months)'] = charged_off_loans['term (months)'].astype(int)  # Convert term to int
@@ -110,12 +127,22 @@ class ExpectedLoss: #Task 3
 
 
 class PossibleLoss: #Task 4
-    def __init__(self, cleaned_loan_data):
-        self.cleaned_loan_data = cleaned_loan_data
+    '''
+    - There are customers who are currently behind with their loan payments. This subset of customers 
+    represent a risk to company revenue.
+    - What percentage do users in this bracket currently represent?
+    - Calculate the total amount of customers in this bracket and how much loss the company would incur if 
+    their status was changed to Charged Off.
+    - What is the projected loss of these loans if the customer were to finish the full loan term?
+    - If customers that are late on payments converted to Charged Off, what percentage of total expected 
+    revenue do these customers and the customers who have already defaulted on their loan represent?
+    '''
+    def __init__(self, loan_data):
+        self.loan_data = loan_data
 
     def calculate_possible_loss(self):
         # Filter customers who are behind on their payments
-        late_customers = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'].str.contains('Late')].copy()
+        late_customers = self.loan_data[self.loan_data['loan_status'].str.contains('Late')].copy()
 
         # Calculate the total number of late customers
         total_late_customers = late_customers.shape[0]
@@ -130,14 +157,14 @@ class PossibleLoss: #Task 4
         total_expected_loss_late = late_customers['expected_loss'].sum()
 
         # Calculate total expected revenue
-        total_revenue = self.cleaned_loan_data['loan_amount'].sum()
+        total_revenue = self.loan_data['loan_amount'].sum()
 
         # Calculate the percentage of late customers compared to total customers
-        total_customers = self.cleaned_loan_data.shape[0]
+        total_customers = self.loan_data.shape[0]
         percentage_late_customers = (total_late_customers / total_customers) * 100 if total_customers > 0 else 0
 
         # Calculate expected loss for charged off loans
-        charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off'].copy()
+        charged_off_loans = self.loan_data[self.loan_data['loan_status'] == 'Charged Off'].copy()
         charged_off_loans['term (months)'] = charged_off_loans['term (months)'].astype(int)
         charged_off_loans['remaining_term'] = charged_off_loans['term (months)'] - (charged_off_loans['total_payment'] / charged_off_loans['instalment'])
         charged_off_loans['expected_loss'] = charged_off_loans['remaining_term'] * charged_off_loans['instalment']
@@ -163,13 +190,25 @@ class PossibleLoss: #Task 4
         }
 
 class LossIndicators: #Task 5
-    def __init__(self, cleaned_loan_data):
-        self.cleaned_loan_data = cleaned_loan_data
+    '''
+    - In this task, you will be analysing the data to visualise the possible indicators that a customer 
+    will not be able to pay the loan.
+    - You will want to compare columns which might be indicators against customers who have already stopped 
+    paying and customers who are currently behind on payments.
+    - Here are some example columns that might indicate that a user might not pay the loan:
+        - Does the grade of the loan have an effect on customers not paying?
+        - Is the purpose for the loan likely to have an effect?
+        - Does the home_ownership value contribute to the likelihood a customer won't pay?
+    - To help identify which columns will be of interest, first create a subset of these users.
+    - Make the analysis and determine the columns are contributing to loans not being paid off and visualise any interesting indicators.
+    - Compare these indicators between loans already charged off and loans that could change to charged off to check if these same factors apply to loans that have the potential to change to "Charged Off".
+    '''
+    def __init__(self, loan_data):
+        self.loan_data = loan_data
 
     def analyze_loss_indicators(self):
-        # Create subsets for charged off loans and late customers
-        charged_off_loans = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'] == 'Charged Off'].copy()
-        late_customers = self.cleaned_loan_data[self.cleaned_loan_data['loan_status'].str.contains('Late')].copy()
+        charged_off_loans = self.loan_data[self.loan_data['loan_status'] == 'Charged Off'].copy()
+        late_customers = self.loan_data[self.loan_data['loan_status'].str.contains('Late')].copy()
 
         # Combine both groups for analysis
         charged_off_loans.loc[:, 'status'] = 'Charged Off'
@@ -200,32 +239,33 @@ class LossIndicators: #Task 5
     def run_analysis(self):
         self.analyze_loss_indicators()
 
-# Application
-df = pd.read_csv(os.path.join('Source_Files', 'loan_payments_data_pretransformed.csv'))
+if __name__ == "__main__":
 
-#Instantiating the classes
-loan_analysis = PaymentStateQuery(df)
-loss_calc = LossCalculation(df)
-expected_loss_calculator = ExpectedLoss(df)
-possible_loss_calculator = PossibleLoss(df)
-loss_indicators = LossIndicators(df)
+    df = pd.read_csv(os.path.join('Source_Files', 'loan_payments_data_pretransformed.csv'))
 
-#loan analysis
-loan_analysis.calculate_total_amount_due()
-total_recovered, total_due, percentage_recovered = loan_analysis.calculate_percentage_recovered()
-total_payment_in_6_months = loan_analysis.calculate_payment_in_6_months()
-loan_analysis.plot_recovered_vs_due(total_recovered, total_due, percentage_recovered)
+    #Instantiating the classes
+    loan_analysis = PaymentStateQuery(df)
+    loss_calc = LossCalculation(df)
+    expected_loss_calculator = ExpectedLoss(df)
+    possible_loss_calculator = PossibleLoss(df)
+    loss_indicators = LossIndicators(df)
 
-#loss calculation
-percentage, total_paid = loss_calc.calculate_loss_percentage()
-print(f"Percentage of Charged Off Loans: {percentage:.2f}%")
-print(f"Total Amount Paid Towards Charged Off Loans: ${total_paid:.2f}")
+    #Task 1
+    loan_analysis.calculate_total_amount_due()
+    total_recovered, total_due, percentage_recovered = loan_analysis.calculate_percentage_recovered()
+    total_payment_in_6_months = loan_analysis.calculate_payment_in_6_months()
+    loan_analysis.plot_recovered_vs_due(total_recovered, total_due, percentage_recovered)
 
-#Expected loss
-expected_loss_calculator.visualize_expected_loss()
+    #Task 2
+    percentage, total_paid = loss_calc.calculate_loss_percentage()
+    print(f"Percentage of Charged Off Loans: {percentage:.2f}%")
+    print(f"Total Amount Paid Towards Charged Off Loans: ${total_paid:.2f}")
 
-#Possible Loss
-possible_loss_calculator.calculate_possible_loss()
+    #Task 3
+    expected_loss_calculator.visualize_expected_loss()
 
-#Loss Indicators
-loss_indicators.run_analysis()
+    #Task 4
+    possible_loss_calculator.calculate_possible_loss()
+
+    #Task 5
+    loss_indicators.run_analysis()
