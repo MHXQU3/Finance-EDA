@@ -206,6 +206,7 @@ The dataset that was provided by the cloud had numerous columns that were the wr
 | application_type                  | object                 | category                  |
 
 ## Data Type Conversion
+Here is where the data type conversion happened. As you can see in the above table, there were a lot of columns in this dataset that were of a dtype that is not convenient for us in the scope of this project. With the skewed columns they operated on numerical dtypes and if a colummn that stated values like how long till someone had their last infraction ended up skewed it would not be of much use to as as the original face values in that column would've been. Many columns which had a set amount of entries were converted to categorical.
 
 ```py
 class DataTransform:
@@ -331,6 +332,7 @@ class DataFrameInfo:
 ```
 
 ## Plotting the Data
+Here I had the idea to compile all the plots into a PDF file. This was partly due to an error on my part where, at the time, there were 18 columns which had a before and after transformation which I had to sift through manually at the time. So I thought if there was any better way to handle all those plots, and thats when the idea of having everything in one on-hand PDF would be the most convienent addition to this project.
 
 ```py
 class Plotter:
@@ -390,6 +392,7 @@ class Plotter:
 ```
 
 ## Transforming the Data
+This class is used to clean up the dataset and make the data useable for EDA. One of the problems with datasets is they tend to have missing values. This code accounts for that by providing each column with two options. If columns have more than 20% of their entries missing, they are deemed useless as imputing values can throw off the column entirely. Imputation is the other route this code goes down where if they have less than 20% missing, it is reasonable enough to impute them in. Then skewed transformations are performed, whether it be by logarithmic or rooting methods, and then EDA can be performed on this transformed data.
 
 ```py
 class DataFrameTransform:
@@ -400,7 +403,7 @@ class DataFrameTransform:
         missing_percent = self.df.isnull().mean() * 100
         return missing_percent[missing_percent > 0]
 
-    def drop_missing_columns(self, threshold=50):
+    def drop_missing_columns(self, threshold=20):
         missing_percent = self.df.isnull().mean() * 100
         columns_to_drop = missing_percent[missing_percent > threshold].index
         self.df.drop(columns=columns_to_drop, inplace=True)
@@ -474,72 +477,51 @@ class DataFrameTransform:
 ```
 
 ## Code Implementation
+This is where the code is run from and below are all the processes that happen.
 
 ```py
 if __name__ == "__main__":
-    # Load credentials
     creds = load_creds('credentials.yaml')
 
-    # Create an instance of the RDSDatabaseConnector using dictionary unpacking
     db_connector = RDSDatabaseConnector(**creds)
 
-    # Initialize the database engine
     db_connector.initialize_engine()
 
-    # Extract data from the loan_payments table
     data_frame = db_connector.extract_data()
 
-    # Create an instance of DataTransform
     data_transformer = DataTransform(data_frame)
 
-    # Convert columns to categorical types
     data_frame = data_transformer.convert_to_categorical(data_frame)
-
-    # Convert date columns to datetime and format
     data_frame = data_transformer.convert_to_datetime(data_frame)
-
-    # Convert column to float and format
     data_frame = data_transformer.convert_to_float(data_frame)
-
-    # Convert column to object and format
     data_frame = data_transformer.convert_to_object(data_frame)
 
-    # Create an instance of DataFrameInfo
     df_info = DataFrameInfo(data_frame)
 
-    # Get and print the summary
     summary = df_info.summarize()
     for key, value in summary.items():
         print(f"{key}:\n{value}\n")
 
-     # Create an instance of DataFrameTransform for handling missing values
     df_transformer = DataFrameTransform(data_frame)
 
-   # Run the data transformation pipeline
     skewed_columns = df_transformer.run_data_transformation_pipeline()
 
-    # Check for missing values after transformation
     missing_values_after = df_transformer.check_missing_values()
     print("Missing Values After Imputation:\n", missing_values_after)
 
-    # Save the pre-transformed data to a CSV for reference
     pretransformed_file_path = os.path.join('Source_Files', 'loan_payments_data_pretransformed.csv')
     db_connector.save_data(data_frame, pretransformed_file_path)
 
-    # Create an instance of Plotter to visualize missing values
     plotter = Plotter()
     plotter.create_pdf("visualisations.pdf")
     plotter.plot_missing_values(data_frame)
 
-    # Visualize skewed columns before transformation
     if not skewed_columns.empty:
         for column in skewed_columns:
             plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
 
-        # Apply transformations to reduce skewness
         data_frame = df_transformer.transform_skewed_columns()  # Call the method once here
 
-        # Visualize skewed columns after transformation
         for column in skewed_columns:
             plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}")
 
