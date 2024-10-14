@@ -36,7 +36,7 @@ Ultimately, your goal is to improve the performance and profitability of the loa
     - [Task 4](#task-4)
     - [Task 5](#task-5)
     - [Code Implementation](#code-implementation-1)
-
+- [License](#license)
 ## Dataset Schema
 
 Below you will find a data dictionary which describes each of the columns so you can understand the values and the purpose each one holds:
@@ -832,3 +832,6 @@ if __name__ == "__main__":
     #Task 5
     loss_indicators.run_analysis()
 ```
+
+## License
+This project is licensed under AICore
