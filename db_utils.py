@@ -95,14 +95,10 @@ class DataTransform:
         df['mths_since_last_major_derog'] = df['mths_since_last_major_derog'].astype('category')
         df['policy_code'] = df['policy_code'].astype('category')
 
-        # Remove the word 'year' and 'years' from all employment_length entries
         df['employment_length'] = df['employment_length'].str.replace(' years', '').str.replace(' year', '').str.strip()
-        # Change dtype to category
         df['employment_length'] = df['employment_length'].astype('category')
-        # Change the column title to 'employment_length (years)'
         df.rename(columns={'employment_length': 'employment_length (years)'}, inplace=True)
 
-        #Changing term to categorical
         df['term'] = df['term'].str.replace(' months', '', regex=False)
         df.rename(columns={'term': 'term (months)'}, inplace=True)
         df['term (months)'] = df['term (months)'].astype('category')
@@ -111,7 +107,6 @@ class DataTransform:
 
 
     def convert_to_datetime(self, df):
-        # Convert to datetime and handle errors
         date_format = '%b-%Y'
 
         df['earliest_credit_line'] = pd.to_datetime(df['earliest_credit_line'], format=date_format, errors='coerce')
@@ -123,7 +118,7 @@ class DataTransform:
         return df
     
     def convert_to_float(self, df):
-         # Convert 'loan_amount' to numeric, handling errors
+         # Convert 'loan_amount' to float, handling errors
         df['loan_amount'] = pd.to_numeric(df['loan_amount'], errors='coerce')
         df['loan_amount'] = df['loan_amount'].astype('float64')
 
@@ -164,7 +159,7 @@ class DataFrameInfo:
         # Shape of the DataFrame
         summary['shape'] = self.df.shape
 
-        # Count and percentage of NULL values
+        # Count and percentage of null values
         null_counts = self.df.isnull().sum()
         null_percentage = (null_counts / len(self.df)) * 100
         summary['null_values'] = pd.DataFrame({'Count': null_counts, 'Percentage': null_percentage}).to_dict()
@@ -205,7 +200,7 @@ class Plotter:
 
     def plot_histogram(self, df, column, title=None):
         plt.figure(figsize=(10, 6))
-        sns.histplot(df[column], kde=True)
+        sns.histplot(df[column], kde=True) # kernel density estimate, providing a smooth dist curve
         if title:
             plt.title(title)
         else:
@@ -290,16 +285,15 @@ class DataFrameTransform:
                 print(f"Warning: Column {column} contains NaN values and will be skipped.")
                 continue
 
-            # Apply transformations based on the presence of zero or negative values
-            if self.df[column].min() > 0:  # Apply log transformation if no zero/negative values
-                self.df[column] = np.log1p(self.df[column])  # Use log1p for numerical stability
-            else:
+            # Apply transformations based on the presence of zero or -ve values
+            if self.df[column].min() > 0:  # Apply log transformation to non zero/-ve values
+                self.df[column] = np.log1p(self.df[column])  # log1p good for numerical stabilty
                 # Check for negative values
                 if (self.df[column] < 0).any():
                     print(f"Warning: Column {column} contains negative values")
                     self.df[column] = np.sqrt(self.df[column] - self.df[column].min() + 1)  # Shift values to make them non-negative
                 else:
-                    self.df[column] = np.sqrt(self.df[column])  # Apply square root
+                    self.df[column] = np.sqrt(self.df[column]) 
 
             print(f"Transformation complete for {column}.")
 
@@ -377,4 +371,4 @@ if __name__ == "__main__":
     data_frame = db_connector.load_csv_to_dataframe(transformed_file_path)
 
     if data_frame is not None:
-        print(data_frame.shape)  # Display the shape of the DataFrame
+        print(data_frame.shape)  
