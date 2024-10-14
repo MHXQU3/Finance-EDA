@@ -5,10 +5,10 @@ import os
 
 class PaymentStateQuery: #Task 1
     '''
-    Summarise what percentage of the loans have been currently recovered compared to the total amount to 
+    - Summarise what percentage of the loans have been currently recovered compared to the total amount to 
     be paid over the loans term including interest.
-    Additionally calculate how much will be paid back in 6 months time with interest. 
-    Visualise your results on an appropriate graph.
+    - Additionally calculate how much will be paid back in 6 months time with interest. 
+    - Visualise your results on an appropriate graph.
     '''
     def __init__(self, loan_data):
         self.loan_data = loan_data
@@ -55,9 +55,9 @@ class PaymentStateQuery: #Task 1
 
 class LossCalculation: #Task 2
     '''
-    The company wants to check what percentage of loans have been a loss to the company:
-    Loans marked as Charged Off in the loan_status column represent a loss to the company.
-    Calculate the percentage of charged off loans and the total amount that was paid towards these loans 
+    - The company wants to check what percentage of loans have been a loss to the company:
+    - Loans marked as Charged Off in the loan_status column represent a loss to the company.
+    - Calculate the percentage of charged off loans and the total amount that was paid towards these loans 
     before being charged off.
     '''
     def __init__(self, loan_data):
@@ -78,9 +78,9 @@ class LossCalculation: #Task 2
     
 class ExpectedLoss: #Task 3
     '''
-    Calculate the expected loss of the loans marked as Charged Off.
-    Calculate the loss in revenue these loans would have generated for the company if they had finished 
-    their term. Visualise the loss projected over the remaining term of these loans.
+    - Calculate the expected loss of the loans marked as Charged Off.
+    - Calculate the loss in revenue these loans would have generated for the company if they had finished 
+    - their term. Visualise the loss projected over the remaining term of these loans.
     '''
     def __init__(self, loan_data):
         self.loan_data = loan_data
