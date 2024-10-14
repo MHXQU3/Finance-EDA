@@ -47,8 +47,6 @@ class RDSDatabaseConnector:
     def save_data(self, df, file_path):
         df.to_csv(file_path, index=False)
 
-
-
     def load_csv_to_dataframe(self, file_path):
         
         try:
@@ -254,9 +252,9 @@ class DataFrameTransform:
         for column in self.df.columns:
             if self.df[column].isnull().any():
                 if self.df[column].dtype in ['int64', 'float64']:  # Numeric types
-                    self.df[column] = self.df[column].fillna(self.df[column].median())
+                    self.df[column] = self.df[column].fillna(self.df[column].median()) # Fills these in with the median values to avoid skewing data
                 elif self.df[column].dtype == 'category':  # Categorical types
-                    self.df[column] = self.df[column].fillna(self.df[column].mode()[0])
+                    self.df[column] = self.df[column].fillna(self.df[column].mode()[0]) # Fills these in with the mode to ensure consistency
         return self.df
     
     def identify_skewed_columns(self, threshold=1.0):
