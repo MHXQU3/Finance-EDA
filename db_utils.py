@@ -76,39 +76,23 @@ class DataTransform:
         self.df = df
     
     def convert_to_categorical(self, df):
-        # Changing application type
+
         df['application_type'] = df['application_type'].astype('category')
-        # Changing grade type
         df['grade'] = df['grade'].astype('category')
-        # Changing home ownership type
         df['home_ownership'] = df['home_ownership'].astype('category')
-        # Changing loan status type
         df['loan_status'] = df['loan_status'].astype('category')
-        # Changing payment plan type
         df['payment_plan'] = df['payment_plan'].astype('category')
-        # Changing purpose type
         df['purpose'] = df['purpose'].astype('category')
-        # Changing sub_grade type
         df['sub_grade'] = df['sub_grade'].astype('category')
-        # Changing verification status type
         df['verification_status'] = df['verification_status'].astype('category')
-        # Changing collections_12_mths_ex_med type
         df['collections_12_mths_ex_med'] = df['collections_12_mths_ex_med'].astype('category')
-        # Changing delinq_2yrs
         df['delinq_2yrs'] = df['delinq_2yrs'].astype('category')
-        # Changing inq_last_6mths
         df['inq_last_6mths'] = df['inq_last_6mths'].astype('category')
-        # Changing open_accounts
         df['open_accounts'] = df['open_accounts'].astype('category')
-        # Changing mths_since_last_delinq
         df['mths_since_last_delinq'] = df['mths_since_last_delinq'].astype('category')
-        # Changing mths_since_last_record
         df['mths_since_last_record'] = df['mths_since_last_record'].astype('category')
-        # Changing total_accounts
         df['total_accounts'] = df['total_accounts'].astype('category')
-        # Changing mths_since_last_major_derog
         df['mths_since_last_major_derog'] = df['mths_since_last_major_derog'].astype('category')
-        # Changing policy_code
         df['policy_code'] = df['policy_code'].astype('category')
 
         # Remove the word 'year' and 'years' from all employment_length entries
@@ -121,7 +105,6 @@ class DataTransform:
         #Changing term to categorical
         df['term'] = df['term'].str.replace(' months', '', regex=False)
         df.rename(columns={'term': 'term (months)'}, inplace=True)
-        # Keep NaN and convert to float64
         df['term (months)'] = df['term (months)'].astype('category')
 
         return df
@@ -142,8 +125,6 @@ class DataTransform:
     def convert_to_float(self, df):
          # Convert 'loan_amount' to numeric, handling errors
         df['loan_amount'] = pd.to_numeric(df['loan_amount'], errors='coerce')
-        
-        # Ensure the column is in float64 format
         df['loan_amount'] = df['loan_amount'].astype('float64')
 
         return df
@@ -383,7 +364,7 @@ if __name__ == "__main__":
         for column in skewed_columns:
             plotter.plot_histogram(data_frame, column, title=f"Before Transformation: {column}")
 
-        data_frame = df_transformer.transform_skewed_columns()  # Call the method once here
+        data_frame = df_transformer.transform_skewed_columns() 
 
         for column in skewed_columns:
             plotter.plot_histogram(data_frame, column, title=f"After Transformation: {column}")
