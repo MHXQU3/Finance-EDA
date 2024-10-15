@@ -20,11 +20,11 @@ class PaymentStateQuery: #Task 1
 
     # Calculate percentage of loans recovered
     def calculate_percentage_recovered(self):
-        total_recovered = self.loan_data['recoveries'].sum()
+        total_recovered = self.loan_data['recoveries'].sum() #total payment
         total_due = self.loan_data['total_amount_due'].sum()
         percentage_recovered = (total_recovered / total_due) * 100
         print(f"Percentage of loans recovered: {percentage_recovered:.2f}%")
-        return total_recovered, total_due, percentage_recovered
+        return total_recovered, total_due, percentage_recovered 
 
     # Calculate total amount to be paid back in 6 months
     def calculate_payment_in_6_months(self):
@@ -33,7 +33,12 @@ class PaymentStateQuery: #Task 1
         self.loan_data['payment_in_6_months'] = self.loan_data['monthly_payment'] * 6
         total_payment_in_6_months = self.loan_data['payment_in_6_months'].sum()
         print(f"Total payment to be paid back in 6 months: {total_payment_in_6_months:.2f}")
-        return total_payment_in_6_months
+        return total_payment_in_6_months #not all loans will have 6 months left
+    # make start date ato get months so far - away from term for amount of months to go
+    # if amount of months is 0 do nothing
+    # if amount of months is 6 or less x by this number
+    # if 6 or higher then times by 6 
+    # filter off by all of charged off loans
 
     # Plot recovered vs total amount to be paid over the loans term including interest
     def plot_recovered_vs_due(self, total_recovered, total_due, percentage_recovered):
@@ -93,7 +98,7 @@ class ExpectedLoss: #Task 3
         charged_off_loans['term (months)'] = charged_off_loans['term (months)'].astype(int)  # Convert term to int
         charged_off_loans.loc[:, 'remaining_term'] = (
             charged_off_loans['term (months)'] - (charged_off_loans['total_payment'] / charged_off_loans['instalment'])
-        ).clip(lower=0)  # Ensure no negative remaining term
+        ).clip(lower=0)  # Ensure no negative remaining term , round off values
 
         # Calculate the projected loss
         charged_off_loans.loc[:, 'expected_loss'] = charged_off_loans['remaining_term'] * charged_off_loans['instalment']
