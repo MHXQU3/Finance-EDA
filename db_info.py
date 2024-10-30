@@ -29,13 +29,9 @@ class DataFrameInfo:
         'unique_values': [self.df[col].nunique() if col in categorical_cols else 'N/A' for col in self.df.columns],  # Unique values only for categorical columns
         'nulls': self.df.isnull().sum().tolist(),                                      # Number of nulls for each column
         'null_percentage': (self.df.isnull().sum() / total_rows * 100).tolist(),        # Null percentage for each column
-<<<<<<< HEAD
-        'zero_count': (self.df == 0).sum().tolist()
-=======
         'zero_count': (self.df == 0).sum().tolist(),
         'zero_percentage': ((self.df == 0).sum() / total_rows * 100).tolist(),
         'skewness':[self.df[col].skew() if col in numeric_cols else 'N/A' for col in self.df.columns]
->>>>>>> 8aea12546fe45855042c9a7fbb61eca45b9d9e98
     }
         
 
