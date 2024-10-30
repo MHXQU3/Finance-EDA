@@ -33,15 +33,26 @@ class DataFrameTransform:
         skewed_columns = self.df.select_dtypes(include=['float64', 'int64']).skew().sort_values(ascending=False)
         return skewed_columns[skewed_columns.abs() > threshold].index
 
-    def remove_outliers_zscore(self, z_threshold=3):
-        # Remove rows where Z-score of numeric columns exceeds threshold
-        numeric_columns = self.df.select_dtypes(include=['float64', 'int64'])
-        z_scores = np.abs(stats.zscore(numeric_columns, nan_policy='omit'))
-        # Filter rows where all columns have z-scores less than the threshold
-        self.df = self.df[(z_scores < z_threshold).all(axis=1)]
-        print(f"Rows with Z-score > {z_threshold} removed.")
+    
+    def remove_outliers_zscore(self, threshold=3):
+        # Select only numeric columns for Z-score calculation
+        numeric_df = self.df.select_dtypes(include=['float64', 'int64'])
+        
+        # Calculate Z-scores for numeric columns
+        z_scores = np.abs((numeric_df - numeric_df.mean()) / numeric_df.std())
+        
+        # Identify rows where any z-score exceeds the threshold
+        outlier_condition = (z_scores > threshold).any(axis=1)
+        
+        # Filter the DataFrame to remove outliers
+        self.df = self.df[~outlier_condition]  # Keep only the rows without outliers
+        
+        # Log how many rows were removed
+        removed_count = outlier_condition.sum()
+        print(f"Z-Score outlier removal: Removed {removed_count} rows.")
 
     def remove_outliers_iqr(self):
+        original_shape = self.df.shape
         # Remove rows where values are outside the IQR bounds
         for column in self.df.select_dtypes(include=['float64', 'int64']):
             Q1 = self.df[column].quantile(0.25)
@@ -51,10 +62,34 @@ class DataFrameTransform:
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
             # Filter out outliers
+            before_removal_count = self.df.shape[0]
             self.df = self.df[(self.df[column] >= lower_bound) & (self.df[column] <= upper_bound)]
-            print(f"Outliers removed from column {column} based on IQR.")
+            after_removal_count = self.df.shape[0]
+            removed_count = before_removal_count - after_removal_count
+            if removed_count > 0:
+                print(f"Outliers removed from column '{column}' based on IQR. Removed {removed_count} rows.")
+            else:
+                print(f"No outliers found in column '{column}' based on IQR.")
+        
+        # Log shape after removal
+        print(f"Shape after IQR outlier removal: {self.df.shape} (original shape was {original_shape}).")
+    
+    def check_mass_zeroes(self, skew_threshold=0.75, zero_threshold=0.95): #Took this out
+        numeric_columns = self.df.select_dtypes(include=['float64', 'int64'])
+        skewed_columns = numeric_columns.skew().sort_values(ascending=False)
+        skewed_columns = skewed_columns[skewed_columns.abs() > skew_threshold]
 
-    def transform_skewed_columns(self, skew_threshold=0.75):
+        mass_zeroes = []
+        for column in skewed_columns.index:
+            zero_proportion = (self.df[column] == 0).mean()
+            if zero_proportion > zero_threshold:
+                print(f"Column '{column}' has {zero_proportion:.2%} of values as zero.")
+                mass_zeroes.append(column)
+
+        return mass_zeroes
+
+
+    def transform_skewed_columns(self, skew_threshold=0.75): #Took this out
         numeric_columns = self.df.select_dtypes(include=['float64', 'int64'])
         skewed_columns = numeric_columns.skew().sort_values(ascending=False)
         skewed_columns = skewed_columns[skewed_columns.abs() > skew_threshold]
@@ -70,6 +105,11 @@ class DataFrameTransform:
         for column in existing_columns:
             print(f"Transforming {column} with skewness: {skewed_columns[column]}")
 
+            zero_proportion = (self.df[column] == 0).mean()
+            if zero_proportion > 0.95:
+                print(f"Skipping {column} - {zero_proportion:.2%} of values are zero.")
+                continue
+            
             if self.df[column].isnull().any():
                 print(f"Warning: Column {column} contains NaN values and will be skipped.")
                 continue
@@ -93,27 +133,37 @@ class DataFrameTransform:
             
         return self.df
 
-    def run_data_transformation_pipeline(self, zscore_outlier_removal=True, iqr_outlier_removal=False):
+    def run_data_transformation_pipeline(self, zscore_outlier_removal=True, iqr_outlier_removal=False): #Took this out
         print("Checking for missing values:")
         missing_values = self.check_missing_values()
         print(f"Missing Values:\n{missing_values}\n")
+        print(f"Initial DataFrame shape: {self.df.shape}")
 
         print("Dropping columns with >50% missing values:")
         self.drop_missing_columns()
+        print(f"Shape after dropping missing columns: {self.df.shape}")
 
         print("Imputation of missing values:")
         self.impute_missing_values()
-        
-        # Outlier removal
+        print(f"Shape after imputation: {self.df.shape}")
+
+        print("Checking for columns with a high proportion of zeros:")
+        mass_zeroes = self.check_mass_zeroes()
+        print(f"Mass zeroes identified: {mass_zeroes}")
+
         if zscore_outlier_removal:
             print("Removing outliers using Z-score:")
             self.remove_outliers_zscore()
+            print(f"Shape after Z-score outlier removal: {self.df.shape}")
+
         if iqr_outlier_removal:
             print("Removing outliers using IQR:")
             self.remove_outliers_iqr()
-
+            print(f"Shape after IQR outlier removal: {self.df.shape}")
+        
         print("Identifying skewed columns:")
         skewed_columns = self.identify_skewed_columns()
         print(f"Skewed Columns: {skewed_columns}\n")
 
-        return skewed_columns
+        return skewed_columns, mass_zeroes
+    

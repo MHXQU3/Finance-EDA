@@ -24,7 +24,8 @@ class DataFrameInfo:
         'std_dev': self.df.std(numeric_only=True).reindex(self.df.columns).tolist(),    # Standard deviation for numeric columns
         'unique_values': [self.df[col].nunique() if col in categorical_cols else 'N/A' for col in self.df.columns],  # Unique values only for categorical columns
         'nulls': self.df.isnull().sum().tolist(),                                      # Number of nulls for each column
-        'null_percentage': (self.df.isnull().sum() / total_rows * 100).tolist()        # Null percentage for each column
+        'null_percentage': (self.df.isnull().sum() / total_rows * 100).tolist(),        # Null percentage for each column
+        'zero_count': (self.df == 0).sum().tolist()
     }
 
     # Convert to DataFrame and handle missing data (e.g., non-numeric columns for means)
