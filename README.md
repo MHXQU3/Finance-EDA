@@ -37,7 +37,8 @@ Ultimately, your goal is to improve the performance and profitability of the loa
 - **Output Data**:
   - `loan_payments_data.csv`: The original dataset from the RDS database
   - `pretransformed_loan_payments.csv`: The dataset after data imputation and data type correction.
-  - `transformed_loan_payments.csv`: Dataset which includes skewness rectification
+  - `transformed_loan_payments.csv`: Dataset which includes skewness rectification.
+  - `query_viz.pdf`: A pdf file with all the visualisations from the EDA notebook.
 
 ---
 
