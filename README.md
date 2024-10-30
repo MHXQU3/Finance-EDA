@@ -45,15 +45,15 @@ Ultimately, your goal is to improve the performance and profitability of the loa
 
 The dataset was originally stored in the RDS database. The `db_utils.py` file makes use of sqlalchemy to store the database and then convert it into a csv file which can be used for this project.<br>
 
-The next step involved creating a script which would deal with all the columns which were of the wrong data type - of which there were several. These involved converting many to categorical, some to datetime, some to objects and some to numerical. These were determined based on their future use throughout the project as well as the contents of the column. <br>
+The next step involved creating a script (`db_converter.py`) which would deal with all the columns which were of the wrong data type - of which there were several. These involved converting many to categorical, some to datetime, some to objects and some to numerical. These were determined based on their future use throughout the project as well as the contents of the column. <br>
 
-Next a script was created to provide an overview of the dataset. This included many statistical values as well as quantities such as null/zero percentages throughout the column as well as skewness. Skewness was identified within this column using both the boxcox and the yeo-johnson methods and depending on which one provided the best skewness rectification, that method will be the one being applied in the later script. A heatmap of correlations with the other columns were also identified.
+Next a script was created to provide an overview of the dataset (`db_info.py`). This included many statistical values as well as quantities such as null/zero percentages throughout the column as well as skewness. Skewness was identified within this column using both the boxcox and the yeo-johnson methods and depending on which one provided the best skewness rectification, that method will be the one being applied in the later script. A heatmap of correlations with the other columns were also identified.<br>
 
-A deleter script was also created which would allow us to remove columns and even specific entries. These were removed based on how correlated they are to other columns, how many zeroes and nulls they have and just in general, if they were a useful column to keep around. 
+A deleter script (`db_deleter.py`) was also created which would allow us to remove columns and even specific entries. These were removed based on how correlated they are to other columns, how many zeroes and nulls they have and just in general, if they were a useful column to keep around. 
 
-The transformer script is where most of this milestone happens. It is where data is imputed based on their data types, the values they contain and the contents of the column. This is also where the aforemention skewness correction happens.
+The transformer script (`db_transformer.py`) is where most of this milestone happens. It is where data is imputed based on their data types, the values they contain and the contents of the column. This is also where the aforemention skewness correction happens.
 
-Lastly, a plotter script was created to plot several graphs.
+Lastly, a plotter script (`db_plotter.py`) was created to plot several graphs and distributions.
 
 These were all scripts that were created and then imported into the noteboook: `Loan_Data_Analysis.ipynb` where the dataset was actually handled.
 
