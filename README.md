@@ -56,6 +56,7 @@ The transformer script is where most of this milestone happens. It is where data
 Lastly, a plotter script was created to plot several graphs.
 
 These were all scripts that were created and then imported into the noteboook: `Loan_Data_Analysis.ipynb` where the dataset was actually handled.
+
 ---
 
 ## **Performing EDA On The Dataset**
