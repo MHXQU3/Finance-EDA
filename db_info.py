@@ -15,7 +15,7 @@ class DataFrameInfo:
 
         total_rows = self.df.shape[0]
 
-        # Filter out categorical columns (object or category types)
+        # Filter out categorical columns
         categorical_cols = self.df.select_dtypes(include=['object', 'category']).columns
         numeric_cols = self.df.select_dtypes(include=['number']).columns
 
@@ -35,7 +35,7 @@ class DataFrameInfo:
     }
         
 
-    # Convert to DataFrame and handle missing data (e.g., non-numeric columns for means)
+    # Convert to DataFrame and handle missing data 
         summary_df = pd.DataFrame(summary).fillna('N/A')
 
         return summary_df
@@ -51,21 +51,21 @@ class DataFrameInfo:
             # Calculate original skewness
             original_skewness = skew(original_data)
             
-            # Box-Cox transformation (only works with positive values)
+            # Box-Cox transformation
             if (original_data > 0).all():
                 boxcox_transformed, _ = boxcox(original_data)
                 boxcox_skewness = skew(boxcox_transformed)
             else:
                 boxcox_skewness = np.nan
             
-            # Log transformation (only works with positive values)
+            # Log transformation 
             if (original_data > 0).all():
                 log_transformed = np.log1p(original_data)
                 log_skewness = skew(log_transformed)
             else:
                 log_skewness = np.nan
             
-            # Yeo-Johnson transformation (works with all values)
+            # Yeo-Johnson transformation
             yeo_transformed, _ = yeojohnson(original_data)
             yeo_skewness = skew(yeo_transformed)
             

@@ -79,7 +79,7 @@ class Plotter:
         plt.show()
 
     def boxplot(self):
-        """Produces a boxplot with scattergraph for all numeric columns within the dataframe."""
+        """Produces a boxplot for all numeric columns within the dataframe."""
 
         numeric_columns = self.df.select_dtypes(include=['number'])
 
