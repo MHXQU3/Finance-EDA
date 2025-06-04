@@ -1,5 +1,5 @@
 # packages in environment at C:\Users\Razer\anaconda3\envs\eda:
-#
+# 
 # Name                    Version                   Build  Channel
 anyio                     4.6.0                    pypi_0    pypi
 argon2-cffi               23.1.0                   pypi_0    pypi
