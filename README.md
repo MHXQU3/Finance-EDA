@@ -1,8 +1,8 @@
 # AICore Finance EDA Project
 
-_Started on 26/09/2024_
+_Started on 26/02/2025_
 
-This project was set by AICore as part of the Data Analytics pathway. It focuses on performing Exploratory Data Analysis (EDA) on a loan payment data set stored in an AWS RDS database. The objective is to extract meaningful insights and prepare the dataset for further analysis by handling missing values, skewed data, outliers, and correlations, ultimately providing a clear understanding of loan performance and potential losses.
+This project was set by AICore as part of the Data Analytics pathway. It focuses on performing Exploratory Data Analysis (EDA) on a loan payment data set stored in an AWS RDS database. The objective is to extract meaningful insights and prepare the dataset for further analysis by handling missing values, skewed data, outliers, and correlations, ultimately providing a clear understanding of loan performance and potential losses. 924
 
 ## **Scenario**
 
